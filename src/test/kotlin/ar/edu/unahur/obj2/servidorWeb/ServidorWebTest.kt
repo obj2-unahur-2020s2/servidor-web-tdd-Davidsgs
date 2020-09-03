@@ -31,5 +31,49 @@ class ServidorWebTest : DescribeSpec({
       respuesta.codigo.shouldBe(CodigoHttp.NOT_FOUND)
       respuesta.body.shouldBe("")
     }
+
+    //-----------------------------------
+
+    val analizadorDePrueba = Analizador()
+
+    servidor.agregarAnalizador(
+      analizadorDePrueba
+    )
+
+    it("No tiene analizadores"){
+      servidor.quitarAnalizador(analizadorDePrueba)
+      servidor.analizadores.size.shouldBe(0)
+    }
+
+    it("Tiene analizadores"){
+      servidor.analizadores.size.shouldNotBe(0)
+    }
+
+    val moduloTest = Modulo(listOf("rar"), "genial!", 300)
+
+    it("Devuelve los pedidos atentidos"){
+      servidor.agregarModulo(moduloTest)
+      val respuesta = servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+      val primerPedido = servidor.primerAnalizador().pedidos.first()
+      primerPedido.respuesta.shouldBeEquals(respuesta)
+      primerPedido.modulo.shouldBeEquals(moduloTest)
+    }
+
+    describe("Analizador de demoras"){
+      val detectorDeDemoras = AnalizadorDemoras(250)
+      val moduloTest2 = Modulo(listOf("wlk"), "bravo!", 200)
+      it("Detecta las demoras"){
+        servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.wlk", LocalDateTime.now())
+        detectorDeDemoras.cantidadRespuestasDemoradas().shouldBeEquals(0)
+        servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        detectorDeDemoras.cantidadRespuestasDemoradas().shouldBeEquals(1)
+      }
+    }
+
+    describe("Analizador de Ips Sospechosas"){
+      val analizadorIps = AnalizadorDeIps(listOf<String>("123.32.3.1"))
+
+
+    }
   }
 })
