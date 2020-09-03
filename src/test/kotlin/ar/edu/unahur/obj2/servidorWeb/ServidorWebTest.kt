@@ -35,7 +35,7 @@ class ServidorWebTest : DescribeSpec({
 
     //-----------------------------------
 
-    val analizadorDePrueba = Analizador()
+    val analizadorDePrueba = AnalizadorDemoras(100)
 
     servidor.agregarAnalizador(
       analizadorDePrueba
@@ -51,6 +51,9 @@ class ServidorWebTest : DescribeSpec({
     }
 
     val moduloTest = Modulo(listOf("rar"), "genial!", 300)
+    val moduloTest2 = Modulo(listOf("wlk"), "bravo!", 200)
+    servidor.agregarModulo(moduloTest)
+    servidor.agregarModulo(moduloTest2)
 
     it("Devuelve los pedidos atentidos"){
       servidor.agregarModulo(moduloTest)
@@ -61,18 +64,80 @@ class ServidorWebTest : DescribeSpec({
     }
 
     describe("Analizador de demoras"){
-      val detectorDeDemoras = AnalizadorDemoras(250)
-      val moduloTest2 = Modulo(listOf("wlk"), "bravo!", 200)
+      val detectorDeDemoras = AnalizadorDemoras(200)
+      servidor.agregarAnalizador(detectorDeDemoras)
       it("Detecta las demoras"){
         servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.wlk", LocalDateTime.now())
-        detectorDeDemoras.cantidadRespuestasDemoradas().shouldBeEquals(0)
+        detectorDeDemoras.cantidadDeDemoras().shouldBe(0)
         servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
-        detectorDeDemoras.cantidadRespuestasDemoradas().shouldBeEquals(1)
+        detectorDeDemoras.cantidadDeDemoras().shouldBe(1)
       }
     }
 
     describe("Analizador de Ips Sospechosas"){
-      val analizadorIps = AnalizadorDeIps(listOf<String>("123.32.3.1"))
+      val ipSos1 = "123.32.3.1"
+      val ipSos2 = "123.32.3.2"
+      val ipSos3 = "123.32.3.3"
+      val analizadorIps = AnalizadorDeIps(setOf(ipSos1))
+      servidor.agregarAnalizador(analizadorIps)
+      it("Pedidos de Ip sospechosa"){
+        servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        analizadorIps.cantidadDePedidos(ipSos1).shouldBe(0)
+        servidor.realizarPedido( ipSos1, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        analizadorIps.cantidadDePedidos(ipSos1).shouldBe(1)
+      }
+
+      it("Modulo más consultado"){
+        val ipSos2 = "123.32.3.2"
+        val analizadorIps2 = AnalizadorDeIps(setOf<String>(ipSos1,ipSos2))
+        servidor.realizarPedido(ipSos1, "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
+        servidor.realizarPedido(ipSos2, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        servidor.realizarPedido(ipSos1, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        analizadorIps2.moduloMasConsultado().shouldBe(moduloTest)
+      }
+
+      it("Ips que siguieron la ruta: http://pepito.com.ar/hola.rar"){
+        servidor.realizarPedido(ipSos1, "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
+        servidor.realizarPedido(ipSos2, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        servidor.realizarPedido(ipSos3, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        analizadorIps.ipsQueRequirieronLaRuta("http://pepito.com.ar/hola.rar").shouldBe(setOf(ipSos2,ipSos3))
+      }
+    }
+
+    describe("Analizador Estadistica"){
+      val analizadorEst = AnalizadorEstadistica()
+      servidor.agregarAnalizador(analizadorEst)
+
+      it("Tiempo de respuesta promedio"){
+        servidor.realizarPedido("192.168.0.1", "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
+        servidor.realizarPedido("192.168.0.1", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        analizadorEst.tiempoPromedio().shouldBe(250)
+      }
+
+      it("Pedidos entre 2 fechas"){
+        servidor.realizarPedido("207.46.13.5", "http://pepito.com.ar/hola.rar", LocalDateTime.of(2001, 5, 15, 6, 31))
+        servidor.realizarPedido("207.46.13.3", "http://pepito.com.ar/hola.rar", LocalDateTime.of(2017, 3, 21, 5, 31))
+        servidor.realizarPedido("207.46.13.1", "http://pepito.com.ar/hola.rar", LocalDateTime.of(2020, 1, 23, 1, 35))
+        val fecha1 = LocalDateTime.of(2016, 3, 21, 5, 31)
+        val fecha2 = LocalDateTime.of(2021, 1, 23, 1, 35)
+        analizadorEst.cantidadDePedidosEntre(fecha1,fecha2).shouldBe(2)
+      }
+
+      it("Respuestas cuyo body incluye un determinado String"){
+        val unModulo = Modulo(listOf("file"), "genial, todo va bien!", 100)
+        servidor.agregarModulo(unModulo)
+        servidor.realizarPedido("192.168.0.1", "http://pepito.com.ar/algo.rar", LocalDateTime.now())
+        servidor.realizarPedido("192.168.0.2", "http://pepito.com.ar/algo.file", LocalDateTime.now())
+        servidor.realizarPedido("192.168.0.4", "http://pepito.com.ar/algo.rar", LocalDateTime.now())
+        analizadorEst.cantidadDeRespuestaCon("genial").shouldBe(3)
+      }
+
+      it("Porcentaje de respuestas exitosas"){
+        servidor.realizarPedido("192.168.0.1", "http://pepito.com.ar/algo.rar", LocalDateTime.now())
+        servidor.realizarPedido("192.168.0.1", "http://pepito.com.ar/algo.noExiste", LocalDateTime.now())
+        analizadorEst.porcentajeExitoso().shouldBe(50)
+      }
+
 
 
     }

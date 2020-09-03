@@ -27,7 +27,7 @@ class ServidorWeb {
     else{
       respuesta = Respuesta(codigo = CodigoHttp.NOT_FOUND, body = "", tiempo = 10)
     }
-    registrarPedido( Pedido(modulo,respuesta) )
+    registrarPedido( Pedido(modulo,respuesta,ip,url,fechaHora) )
     return respuesta
 
 
