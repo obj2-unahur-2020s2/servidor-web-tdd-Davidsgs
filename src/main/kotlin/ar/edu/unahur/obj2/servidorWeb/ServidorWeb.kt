@@ -1,5 +1,6 @@
 package ar.edu.unahur.obj2.servidorWeb
 
+import java.lang.NullPointerException
 import java.time.LocalDateTime
 
 enum class CodigoHttp(val codigo: Int) {
@@ -10,24 +11,48 @@ enum class CodigoHttp(val codigo: Int) {
 
 class ServidorWeb {
   val modulos = mutableListOf<Modulo>()
+  val analizadores = mutableListOf<Analizador>()
 
   fun realizarPedido(ip: String, url: String, fechaHora: LocalDateTime): Respuesta {
+    var respuesta : Any?
+    var modulo : Modulo? = null
     if (!url.startsWith("http:")) {
-      return Respuesta(codigo = CodigoHttp.NOT_IMPLEMENTED, body = "", tiempo = 10)
+      respuesta = Respuesta(codigo = CodigoHttp.NOT_IMPLEMENTED, body = "", tiempo = 10)
     }
-
-    if (this.algunModuloSoporta(url)) {
+    else if (this.algunModuloSoporta(url)) {
       val moduloSeleccionado = this.modulos.find { it.puedeTrabajarCon(url) }!!
-      return Respuesta(CodigoHttp.OK, moduloSeleccionado.body, moduloSeleccionado.tiempoRespuesta)
+      modulo = moduloSeleccionado
+      respuesta = Respuesta(CodigoHttp.OK, moduloSeleccionado.body, moduloSeleccionado.tiempoRespuesta)
     }
+    else{
+      respuesta = Respuesta(codigo = CodigoHttp.NOT_FOUND, body = "", tiempo = 10)
+    }
+    registrarPedido( Pedido(modulo,respuesta) )
+    return respuesta
 
-    return Respuesta(codigo = CodigoHttp.NOT_FOUND, body = "", tiempo = 10)
+
   }
 
   fun algunModuloSoporta(url: String) = this.modulos.any { it.puedeTrabajarCon(url) }
 
   fun agregarModulo(modulo: Modulo) {
     this.modulos.add(modulo)
+  }
+
+  fun agregarAnalizador(analizador: Analizador) {
+    analizadores.add(analizador)
+  }
+
+  fun quitarAnalizador(analizador: Analizador) {
+    analizadores.remove(analizador)
+  }
+
+  fun primerAnalizador(): Analizador {
+    return analizadores.first()
+  }
+
+  fun registrarPedido(pedido: Pedido){
+    analizadores.forEach{it.agregarPedido(pedido)}
   }
 }
 

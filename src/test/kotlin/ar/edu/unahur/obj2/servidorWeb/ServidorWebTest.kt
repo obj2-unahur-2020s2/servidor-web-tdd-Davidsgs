@@ -2,6 +2,7 @@ package ar.edu.unahur.obj2.servidorWeb
 
 import io.kotest.core.spec.style.DescribeSpec
 import io.kotest.matchers.shouldBe
+import io.kotest.matchers.shouldNotBe
 import java.time.LocalDateTime
 
 class ServidorWebTest : DescribeSpec({
@@ -54,9 +55,9 @@ class ServidorWebTest : DescribeSpec({
     it("Devuelve los pedidos atentidos"){
       servidor.agregarModulo(moduloTest)
       val respuesta = servidor.realizarPedido("123.3.12.3", "http://pepito.com.ar/hola.rar", LocalDateTime.now())
-      val primerPedido = servidor.primerAnalizador().pedidos.first()
-      primerPedido.respuesta.shouldBeEquals(respuesta)
-      primerPedido.modulo.shouldBeEquals(moduloTest)
+      val primerPedido = servidor.primerAnalizador().primerPedido()
+      primerPedido.respuesta.shouldBe(respuesta)
+      primerPedido.modulo.shouldBe(moduloTest)
     }
 
     describe("Analizador de demoras"){
