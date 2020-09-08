@@ -88,19 +88,21 @@ class ServidorWebTest : DescribeSpec({
       }
 
       it("Modulo más consultado"){
-        val ipSos2 = "123.32.3.2"
-        val analizadorIps2 = AnalizadorDeIps(setOf<String>(ipSos1,ipSos2))
-        servidor.realizarPedido(ipSos1, "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
-        servidor.realizarPedido(ipSos2, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
+        val analizadorIps2 = AnalizadorDeIps(setOf(ipSos1,ipSos2))
+        servidor.agregarAnalizador(analizadorIps2)
+        servidor.realizarPedido(ipSos2, "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
+        servidor.realizarPedido(ipSos1, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
         servidor.realizarPedido(ipSos1, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
         analizadorIps2.moduloMasConsultado().shouldBe(moduloTest)
       }
 
       it("Ips que siguieron la ruta: http://pepito.com.ar/hola.rar"){
+        val analizadorIps2 = AnalizadorDeIps(setOf(ipSos1,ipSos2,ipSos3))
+        servidor.agregarAnalizador(analizadorIps2)
         servidor.realizarPedido(ipSos1, "http://pepito.com.ar/algo.wlk", LocalDateTime.now())
         servidor.realizarPedido(ipSos2, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
         servidor.realizarPedido(ipSos3, "http://pepito.com.ar/hola.rar", LocalDateTime.now())
-        analizadorIps.ipsQueRequirieronLaRuta("http://pepito.com.ar/hola.rar").shouldBe(setOf(ipSos2,ipSos3))
+        analizadorIps2.ipsQueRequirieronLaRuta("http://pepito.com.ar/hola.rar").shouldBe(setOf(ipSos2,ipSos3))
       }
     }
 

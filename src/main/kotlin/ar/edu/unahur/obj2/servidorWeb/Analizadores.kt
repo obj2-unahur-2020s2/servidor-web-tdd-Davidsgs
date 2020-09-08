@@ -22,6 +22,7 @@ abstract class Analizador(){
 
     fun respuestas() = pedidos.map{it.respuesta}
 
+
 }
 
 class AnalizadorDemoras(val tiempoMinimo: Int) : Analizador(){
@@ -43,8 +44,7 @@ class AnalizadorDeIps(val ipsSospechosas : Set<String>) : Analizador() {
     }
 
     fun moduloMasConsultado() : Modulo?{
-        val listaDeModulos : List<Modulo?> = pedidos.map { p -> p.modulo }
-        return listaDeModulos.maxBy { m -> Collections.frequency(listaDeModulos,m)}!!
+        return pedidos.groupBy{it.modulo}.maxBy{it.component2().size}?.component1()
     }
 
     fun ipsQueRequirieronLaRuta(ruta : String) : Set<String>{
